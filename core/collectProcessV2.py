@@ -22,8 +22,6 @@ def collect_process_info():
         pid = cmdagent.get_pid_by_jobid(job_id)
         proc = node.get_process_info_by_id(pid, workdir)
 
-        print(proc)
-
         cpu_info = proc['cpu_info']
         project_name = proc['project_name']
         mem_info = proc['mem_info']

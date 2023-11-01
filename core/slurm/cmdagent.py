@@ -2,6 +2,8 @@
 
 import subprocess
 
+SLURM_PATH = '/opt/slurm/bin/'
+
 def get_slurm_jobs(nodelist):
     """
     Get slurm jobs.
@@ -9,8 +11,7 @@ def get_slurm_jobs(nodelist):
     :return:
     """
     # squeue -h -o "%i,%N" | grep node-1
-    command = 'squeue -h -o "%i,%N" | grep ' + nodelist
-    print(command)
+    command = SLURM_PATH + 'squeue -h -o "%i,%N" | grep ' + nodelist
     output = subprocess.check_output(command, shell=True, universal_newlines=True)
     lines = output.strip().split('\n')
     jobs = []
@@ -28,7 +29,6 @@ def get_pid_by_jobid(job_id):
     """
     result = None
     command = "ps -ef | grep %s.batch | grep -v grep | awk '{print $2}'" % job_id
-    print(command)
     output = subprocess.check_output(command, shell=True, universal_newlines=True)
     if output:
         result = output.rstrip("\n")
@@ -41,7 +41,7 @@ def get_job_workdir(jobid):
     :return:
     """
     result = None
-    command = "scontrol show job %s | grep -E 'WorkDir' | awk -F= '{print $2}' | awk '{$1=$1};1'" % jobid
+    command = SLURM_PATH + "scontrol show job %s | grep -E 'WorkDir' | awk -F= '{print $2}' | awk '{$1=$1};1'" % jobid
     output = subprocess.check_output(command, shell=True, universal_newlines=True)
     if output:
         result = output.rstrip("\n")

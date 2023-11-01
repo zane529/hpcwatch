@@ -26,6 +26,8 @@ def collect_process_info():
         project_name = proc['project_name']
         mem_info = proc['mem_info']
         disk_info = proc['disk_info']
+
+        pid = job_id + '_' + pid
         
         # Collect process cpu info.
         cpu_collects = list()

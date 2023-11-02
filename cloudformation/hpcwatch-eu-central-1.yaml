@@ -1,0 +1,330 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - 
+         Label:
+           default: "General Configuration"
+         Parameters:
+           - ClusterVpcId
+           - InfluxdbSubnetId
+           - GrafanaSubnetId
+           - KeyName
+      - 
+         Label:
+           default: "InfluxDB Configuration"
+         Parameters:
+           - InfluxdbInstanceType
+           - InfluxdbDataSize
+           - InfluxdbUser
+           - InfluxdbPass
+      - 
+         Label:
+           default: "Grafana Configuration"
+         Parameters:
+           - GrafanaInstanceType
+
+Parameters:
+  ClusterVpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: The vpcId of the hpc cluster.
+  InfluxdbSubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: The subnetId of InfluxDB.
+  InfluxdbInstanceType:
+    Type: String
+    Default: r6g.xlarge
+    Description: The instance type of InfluxDB.
+  InfluxdbDataSize:
+    Type: Number
+    Default: "100"
+    Description: The data size of InfluxDB (GB).
+  GrafanaSubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: The subnetId of Grafana.
+  GrafanaInstanceType:
+    Type: String
+    Default: c6g.large
+    Description: The instance type of Grafana.
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: The key name of the instances.
+  InfluxdbUser:
+    Type: String
+    Description: InfluxDB user.
+  InfluxdbPass:
+    Type: String
+    Description: InfluxDB pass.
+Resources:
+  BasicParameterUser:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: InfluxdbUser
+      Type: String
+      Value: !Ref InfluxdbUser
+      Description: SSM Parameter for influxDB user.
+  BasicParameterPass:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: InfluxdbPass
+      Type: String
+      Value: !Ref InfluxdbPass
+      Description: SSM Parameter for influxDB Pass.
+  hpcWatchInfluxDBSecurityGroupcioKkjLm68E3A6C0:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: CDK create security group for influxDB.
+      GroupName: hpcWatch-InfluxDBSecurityGroup-cioKkjLm
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic by default
+          IpProtocol: "-1"
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          Description: from 0.0.0.0/0:8086
+          FromPort: 8086
+          IpProtocol: tcp
+          ToPort: 8086
+        - CidrIp: 0.0.0.0/0
+          Description: from 0.0.0.0/0:22
+          FromPort: 22
+          IpProtocol: tcp
+          ToPort: 22
+      VpcId:
+        Ref: ClusterVpcId
+    Metadata:
+      aws:cdk:path: CdkWorkStack/hpcWatch-InfluxDBSecurityGroup-cioKkjLm/Resource
+  influxDBarmInstanceRole7620740B:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+        Version: "2012-10-17"
+      Tags:
+        - Key: Name
+          Value: influxDB-arm
+    Metadata:
+      aws:cdk:path: CdkWorkStack/influxDB-arm/InstanceRole/Resource
+  influxDBarmInstanceProfileDF880C42:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - Ref: influxDBarmInstanceRole7620740B
+    Metadata:
+      aws:cdk:path: CdkWorkStack/influxDB-arm/InstanceProfile
+  influxDBarm9EC1E33E:
+    Type: AWS::EC2::Instance
+    Properties:
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: "40"
+            DeleteOnTermination: "True"
+        - DeviceName: /dev/sdb
+          Ebs:
+            VolumeSize:
+              Ref: InfluxdbDataSize
+            DeleteOnTermination: "False"
+      IamInstanceProfile:
+        Ref: influxDBarmInstanceProfileDF880C42
+      ImageId: ami-001e06d9dd526cca4
+      InstanceType:
+        Ref: InfluxdbInstanceType
+      KeyName:
+        Ref: KeyName
+      SecurityGroupIds:
+        - Fn::GetAtt:
+            - hpcWatchInfluxDBSecurityGroupcioKkjLm68E3A6C0
+            - GroupId
+      SubnetId:
+        Ref: InfluxdbSubnetId
+      Tags:
+        - Key: Name
+          Value: influxDB-arm
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+
+          mkfs -t xfs /dev/sdb
+          mkdir /influxdb-data
+          mount /dev/sdb /influxdb-data/
+          mkdir -p /influxdb-data/influxdb/meta
+          mkdir -p /influxdb-data/influxdb/data
+          mkdir -p /influxdb-data/influxdb/wal
+
+          cat <<EOF | sudo tee /etc/yum.repos.d/influxdb.repo
+          [influxdb]
+          name = InfluxDB Repository - RHEL 9
+          baseurl = https://repos.influxdata.com/rhel/9/aarch64/stable/
+          enabled = 1
+          gpgcheck = 1
+          gpgkey = https://repos.influxdata.com/influxdata-archive_compat.key
+          EOF
+
+          yum repolist
+          yum install influxdb -y
+          chown -R influxdb:influxdb /influxdb-data/
+
+          sed -i '12c \reporting-disabled = true' /etc/influxdb/influxdb.conf
+          echo "<<<<<<<<<<<<<<<<<<<< Reporting-disabled configuration success. >>>>>>>>>>>>>>>>>>>>"
+          sleep 2
+          sed -i '26c \  dir = "/influxdb-data/influxdb/meta"' /etc/influxdb/influxdb.conf
+          echo "<<<<<<<<<<<<<<<<<<<< Meta-dir configuration success. >>>>>>>>>>>>>>>>>>>>"
+          sleep 2
+           
+          sed -i '45c \  dir = "/influxdb-data/influxdb/data"' /etc/influxdb/influxdb.conf
+          echo "<<<<<<<<<<<<<<<<<<<< Data-dir configuration success. >>>>>>>>>>>>>>>>>>>>"
+          sleep 2
+           
+          sed -i '48c \  wal-dir = "/influxdb-data/influxdb/wal"' /etc/influxdb/influxdb.conf
+          echo "<<<<<<<<<<<<<<<<<<<< Wal-dir configuration success. >>>>>>>>>>>>>>>>>>>>"
+          sleep 2
+           
+          sed -i '60c \  index-version = "tsi1"' /etc/influxdb/influxdb.conf
+          echo "<<<<<<<<<<<<<<<<<<<< Index-version configuration success. >>>>>>>>>>>>>>>>>>>>"
+          sleep 2
+          echo "<<<<<<<<<<<<<<<<<<<<All configuration set success.>>>>>>>>>>>>>>>>>>>>"
+
+          echo "<<<<<<<<<<<<<<<<<<<<Starting influxdb.>>>>>>>>>>>>>>>>>>>>"
+          systemctl start influxdb
+          echo "<<<<<<<<<<<<<<<<<<<<Here's influxdb's state.>>>>>>>>>>>>>>>>>>>>"
+          systemctl status influxdb |grep Active| awk '{print $3}' | cut -d "(" -f2 |cut -d ")" -f1
+          sleep 2
+
+          curl -i -XPOST http://localhost:8086/query --data-urlencode "q=CREATE USER ${InfluxdbUser} WITH PASSWORD '${InfluxdbPass}' WITH ALL PRIVILEGES"
+          echo "<<<<<<<<<<<<<<<<<<<< Craete influxdb's user success.>>>>>>>>>>>>>>>>>>>>"
+          sleep 2
+
+          sed -i '263c \  auth-enabled = true' /etc/influxdb/influxdb.conf
+          echo "<<<<<<<<<<<<<<<<<<<< Enable auth configuration success. >>>>>>>>>>>>>>>>>>>>"
+
+          echo "<<<<<<<<<<<<<<<<<<<<Adding influxdb to startup...>>>>>>>>>>>>>>>>>>>>"
+          systemctl enable influxdb.service
+          echo "<<<<<<<<<<<<<<<<<<<<Added success.>>>>>>>>>>>>>>>>>>>>"
+          echo "<<<<<<<<<<<<<<<<<<<<All things done, please check the follow description about status.>>>>>>>>>>>>>>>>>>>>"
+          systemctl restart influxdb
+          systemctl status influxdb |grep Active| awk '{print $3}' | cut -d "(" -f2 |cut -d ")" -f1
+
+          curl -i -XPOST http://localhost:8086/query -u ${InfluxdbUser}:${InfluxdbPass} --data-urlencode "q=CREATE DATABASE hpccollect"
+          echo "<<<<<<<<<<<<<<<<<<<< Create database success. >>>>>>>>>>>>>>>>>>>>"
+    DependsOn:
+      - influxDBarmInstanceRole7620740B
+    Metadata:
+      aws:cdk:path: CdkWorkStack/influxDB-arm/Resource
+  hpcWatchGrafanaSecurityGroupJILxa3w042A9BCE6:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: CDK create security group for grafana.
+      GroupName: hpcWatch-GrafanaSecurityGroup-JILxa3w0
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic by default
+          IpProtocol: "-1"
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          Description: from 0.0.0.0/0:3000
+          FromPort: 3000
+          IpProtocol: tcp
+          ToPort: 3000
+        - CidrIp: 0.0.0.0/0
+          Description: from 0.0.0.0/0:22
+          FromPort: 22
+          IpProtocol: tcp
+          ToPort: 22
+      VpcId:
+        Ref: ClusterVpcId
+    Metadata:
+      aws:cdk:path: CdkWorkStack/hpcWatch-GrafanaSecurityGroup-JILxa3w0/Resource
+  grafanaarmInstanceRole2084B630:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+        Version: "2012-10-17"
+      Tags:
+        - Key: Name
+          Value: grafana-arm
+    Metadata:
+      aws:cdk:path: CdkWorkStack/grafana-arm/InstanceRole/Resource
+  grafanaarmInstanceProfile9CD62625:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - Ref: grafanaarmInstanceRole2084B630
+    Metadata:
+      aws:cdk:path: CdkWorkStack/grafana-arm/InstanceProfile
+  grafanaarmF9A47455:
+    Type: AWS::EC2::Instance
+    Properties:
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: "40"
+            DeleteOnTermination: "True"
+      IamInstanceProfile:
+        Ref: grafanaarmInstanceProfile9CD62625
+      ImageId: ami-001e06d9dd526cca4
+      InstanceType: 
+        Ref: GrafanaInstanceType
+      KeyName:
+        Ref: KeyName
+      SecurityGroupIds:
+        - Fn::GetAtt:
+            - hpcWatchGrafanaSecurityGroupJILxa3w042A9BCE6
+            - GroupId
+      SubnetId:
+        Ref: GrafanaSubnetId
+      Tags:
+        - Key: Name
+          Value: grafana-arm
+      UserData:
+        Fn::Base64: |-
+          #!/bin/bash
+          yum update -y
+          yum install -y https://dl.grafana.com/oss/release/grafana-10.2.0-1.aarch64.rpm
+          echo "<<<<<<<<<<<<<<<<<<<< Install grafana success. >>>>>>>>>>>>>>>>>>>>"
+          systemctl daemon-reload
+          systemctl start grafana-server
+          echo "<<<<<<<<<<<<<<<<<<<< Start grafana success. >>>>>>>>>>>>>>>>>>>>"
+          systemctl status grafana-server
+    DependsOn:
+      - grafanaarmInstanceRole2084B630
+    Metadata:
+      aws:cdk:path: CdkWorkStack/grafana-arm/Resource
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/1WNQQrCMBBFz9J9MtoWBNcuxJUlHkBiTHFsm5RkgpSQuxurWbj6w3vz+Q3U2xbqSr48V/eBj3iDeCGpBia0t8EpzbK7Rq2aLLQKDmk5OhtmdujNPzgZT9LkRjblTgzlBFHYccUli+6c7XHUKX3gOdAcaH37bSfWLfSwZtPCHnbV0yNyFwzhpEF88w2o8cKxwgAAAA==
+    Metadata:
+      aws:cdk:path: CdkHpcwatchGlobalStack/CDKMetadata/Default
+  BasicParameterInfluxdbIp:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: InfluxdbPrivateIp
+      Type: String
+      Value:
+        Fn::GetAtt:
+          - influxDBarm9EC1E33E
+          - PrivateIp
+      Description: SSM Parameter for influxDB IP.
+Outputs:
+  InfluxdbIP:
+    Value:
+      Fn::GetAtt:
+        - influxDBarm9EC1E33E
+        - PrivateIp
+  GrafanaIP:
+    Value:
+      Fn::GetAtt:
+        - grafanaarmF9A47455
+        - PublicIp

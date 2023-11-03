@@ -15,15 +15,22 @@ def collect_process_info():
     instance_id = awsUtil.get_aws_instance_id()
     instance_type = awsUtil.get_aws_instance_type()
     hostname_dict = node.get_host_info()
-    job_ids = cmdagent.get_slurm_jobs(hostname_dict.get('host_name', None))
+    jobs = cmdagent.get_slurm_jobs(hostname_dict.get('host_name', None))
     
-    for job_id in job_ids:
+    for job in jobs:
+        job_id = job.get_job_id()
+        job_name = job.get_job_name()
+        project_name = None
+        if job_name:
+            if '_' in job_name:
+                project_name = job_name.split('_')[0]
         workdir = cmdagent.get_job_workdir(job_id)
         pid = cmdagent.get_pid_by_jobid(job_id)
         proc = node.get_process_info_by_id(pid, workdir)
 
         cpu_info = proc['cpu_info']
-        project_name = proc['project_name']
+        
+
         mem_info = proc['mem_info']
         disk_info = proc['disk_info']
 

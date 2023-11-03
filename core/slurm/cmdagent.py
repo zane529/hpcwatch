@@ -1,7 +1,15 @@
 # -*- coding: utf-8 -*-
 
+import sys
 import subprocess
 import os
+
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
+jobinfo_path = os.path.join(script_dir, "jobinfo.py")
+sys.path.append(jobinfo_path)
+
+from jobinfo import JobInfo
 
 SLURM_PATH = '/opt/slurm/bin/'
 
@@ -13,15 +21,18 @@ def get_slurm_jobs(nodelist):
     """
     # squeue -h -o "%i,%N" | grep node-1
     if not os.path.exists(SLURM_PATH):
-        command = SLURM_PATH + 'squeue -h -o "%i,%N" | grep ' + nodelist
+        command = SLURM_PATH + 'squeue -h -o "%i,%j,%N" | grep ' + nodelist
     else:
-        command = SLURM_PATH + 'squeue -h -o "%i,%N" | grep ' + nodelist
+        command = SLURM_PATH + 'squeue -h -o "%i,%j,%N" | grep ' + nodelist
     output = subprocess.check_output(command, shell=True, universal_newlines=True)
     lines = output.strip().split('\n')
+
     jobs = []
     for line in lines:
         data = line.split(',')
-        job = data[0]
+        job_id = data[0]
+        job_name = data[1]
+        job = JobInfo(job_id, job_name)
         jobs.append(job)
     return jobs
 

@@ -10,7 +10,7 @@ PROCESS_KEY = '--watch-id='
 DISK_PATH = awsUtil.get_aws_parameter('JobPrefixPath')
 
 
-class NodeResourGceV2(object):
+class NodeResourceV2(object):
     """
     Get node resources, like cpu, mem, disk, instanceId.
     """

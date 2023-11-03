@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from nodeinfo import NodeResource
+from nodeinfo import NodeResourceV2
 import influxdbClient
 import awsUtil
 
 # Init InfluxDB client.
 client = influxdbClient.get_influxdb_client()
 # Init node info.
-node = NodeResource()
+node = NodeResourceV2()
 
 class CollectNode(object):
     """

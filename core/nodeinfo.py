@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
 import socket
-from warnings import catch_warnings
 import psutil
 import awsUtil
 from processinfo import ProcInfo

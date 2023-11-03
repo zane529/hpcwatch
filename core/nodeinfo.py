@@ -10,7 +10,7 @@ PROCESS_KEY = '--watch-id='
 DISK_PATH = awsUtil.get_aws_parameter('JobPrefixPath')
 
 
-class NodeResourceV2(object):
+class NodeResourGceV2(object):
     """
     Get node resources, like cpu, mem, disk, instanceId.
     """
@@ -38,13 +38,16 @@ class NodeResourceV2(object):
         :return:
         """
         mem = psutil.virtual_memory()
-        mem_used = mem.percent
+        mem_used = mem.used
+        mem_used_per = mem.percent
         i_mem_used = 0
+        i_mem_per_used = 0
         try:
             i_mem_used = int(mem_used)
+            i_mem_per_used = int(mem_used_per)
         except Exception as e:
             print(e)
-        return {'mem_used': i_mem_used}
+        return {'mem_used': i_mem_used, 'mem_used_per': i_mem_per_used}
 
     def get_disk_state(self):
         """
@@ -53,13 +56,17 @@ class NodeResourceV2(object):
         """
         diskpath = '/'
         disk_stat = psutil.disk_usage(diskpath)
-        disk_used = disk_stat.percent
+        disk_used = disk_stat.used
+        disk_used_per = disk_stat.percent
         i_disk_used = 0
+        i_disk_per_used = 0
+        
         try:
             i_disk_used = int(disk_used)
+            i_disk_per_used = int(disk_used_per)
         except Exception as e:
             print(e)
-        return {'disk_used': i_disk_used}
+        return {'disk_used': i_disk_used, 'disk_used_per': i_disk_per_used}
     
     def get_process_info_by_id(self, pid, workdir):
         """
@@ -166,13 +173,16 @@ class NodeResource(object):
         :return:
         """
         mem = psutil.virtual_memory()
-        mem_used = mem.percent
+        mem_used = mem.used
+        mem_used_per = mem.percent
         i_mem_used = 0
+        i_mem_per_used = 0
         try:
             i_mem_used = int(mem_used)
+            i_mem_per_used = int(mem_used_per)
         except Exception as e:
             print(e)
-        return {'mem_used': i_mem_used}
+        return {'mem_used': i_mem_used, 'mem_used_per': i_mem_per_used}
 
     def get_disk_state(self):
         """

@@ -1,4 +1,14 @@
 {
+  "__inputs": [
+    {
+      "name": "DS_INFLUXDB",
+      "label": "InfluxDB",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "influxdb",
+      "pluginName": "InfluxDB"
+    }
+  ],
   "annotations": {
     "list": [
       {
@@ -24,13 +34,14 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 1,
+  "id": 7,
   "links": [],
   "liveNow": false,
   "panels": [
     {
       "datasource": {
-        "type": "influxdb"
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
       },
       "fieldConfig": {
         "defaults": {
@@ -38,6 +49,7 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
@@ -51,6 +63,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
@@ -68,7 +81,6 @@
             }
           },
           "mappings": [],
-          "noValue": "-",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -107,24 +119,34 @@
       },
       "targets": [
         {
-          "alias": "$host",
+          "alias": "$tag_host",
           "datasource": {
-            "type": "influxdb"
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
           },
           "groupBy": [
             {
               "params": [
-                "$cusInterval"
+                "$__interval"
               ],
               "type": "time"
+            },
+            {
+              "params": [
+                "host"
+              ],
+              "type": "tag"
+            },
+            {
+              "params": [
+                "previous"
+              ],
+              "type": "fill"
             }
           ],
-          "hide": false,
           "measurement": "node_cpu_use",
           "orderByTime": "ASC",
           "policy": "default",
-          "query": "SELECT mean(\"cpu_percent\") FROM \"node_cpu_use\" WHERE (\"host\" =~ /^$host$/) AND $timeFilter GROUP BY time($interval)",
-          "rawQuery": false,
           "refId": "A",
           "resultFormat": "time_series",
           "select": [
@@ -141,13 +163,7 @@
               }
             ]
           ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
+          "tags": []
         }
       ],
       "title": "CPU Use",
@@ -155,7 +171,8 @@
     },
     {
       "datasource": {
-        "type": "influxdb"
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
       },
       "fieldConfig": {
         "defaults": {
@@ -163,6 +180,7 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
@@ -176,6 +194,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
@@ -206,34 +225,9 @@
               }
             ]
           },
-          "unit": "percent"
+          "unit": "decbytes"
         },
-        "overrides": [
-          {
-            "__systemRef": "hideSeriesFrom",
-            "matcher": {
-              "id": "byNames",
-              "options": {
-                "mode": "exclude",
-                "names": [
-                  "Value"
-                ],
-                "prefix": "All except:",
-                "readOnly": true
-              }
-            },
-            "properties": [
-              {
-                "id": "custom.hideFrom",
-                "value": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": true
-                }
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -256,16 +250,29 @@
       },
       "targets": [
         {
-          "alias": "$host",
+          "alias": "$tag_host",
           "datasource": {
-            "type": "influxdb"
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
           },
           "groupBy": [
             {
               "params": [
-                "$cusInterval"
+                "10s"
               ],
               "type": "time"
+            },
+            {
+              "params": [
+                "host"
+              ],
+              "type": "tag"
+            },
+            {
+              "params": [
+                "previous"
+              ],
+              "type": "fill"
             }
           ],
           "measurement": "node_mem_use",
@@ -287,13 +294,7 @@
               }
             ]
           ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
+          "tags": []
         }
       ],
       "title": "Mem Use",
@@ -301,7 +302,8 @@
     },
     {
       "datasource": {
-        "type": "influxdb"
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
       },
       "fieldConfig": {
         "defaults": {
@@ -309,6 +311,7 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
@@ -322,6 +325,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
@@ -352,7 +356,7 @@
               }
             ]
           },
-          "unit": "percent"
+          "unit": "decbytes"
         },
         "overrides": []
       },
@@ -377,16 +381,29 @@
       },
       "targets": [
         {
-          "alias": "$host",
+          "alias": "$tag_host",
           "datasource": {
-            "type": "influxdb"
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
           },
           "groupBy": [
             {
               "params": [
-                "$cusInterval"
+                "$__interval"
               ],
               "type": "time"
+            },
+            {
+              "params": [
+                "host"
+              ],
+              "type": "tag"
+            },
+            {
+              "params": [
+                "previous"
+              ],
+              "type": "fill"
             }
           ],
           "measurement": "node_disk_use",
@@ -408,104 +425,52 @@
               }
             ]
           ],
-          "tags": [
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^$host$/"
-            }
-          ]
+          "tags": []
         }
       ],
       "title": "Disk Use",
       "type": "timeseries"
     }
   ],
-  "refresh": "30s",
-  "schemaVersion": 37,
-  "style": "dark",
+  "refresh": "5s",
+  "schemaVersion": 38,
   "tags": [],
   "templating": {
     "list": [
       {
-        "allValue": "",
         "current": {
-          "selected": true,
-          "text": "i-0001887b24e46acc3",
-          "value": "i-0001887b24e46acc3"
+          "selected": false,
+          "text": "i-0530c549952e87dc2",
+          "value": "i-0530c549952e87dc2"
         },
         "datasource": {
-          "type": "influxdb"
+          "type": "influxdb",
+          "uid": "${DS_INFLUXDB}"
         },
-        "definition": "SHOW TAG VALUES FROM \"proc_cpu_use\" WITH KEY = host",
-        "hide": 0,
-        "includeAll": true,
-        "label": "InstanceId",
+        "definition": "show tags where key='host'",
+        "hide": 2,
+        "includeAll": false,
+        "label": "Host",
         "multi": false,
         "name": "host",
         "options": [],
-        "query": "SHOW TAG VALUES FROM \"proc_cpu_use\" WITH KEY = host",
+        "query": "show tags where key='host'",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
         "sort": 0,
         "type": "query"
-      },
-      {
-        "auto": false,
-        "auto_count": 30,
-        "auto_min": "10s",
-        "current": {
-          "selected": false,
-          "text": "5m",
-          "value": "5m"
-        },
-        "hide": 0,
-        "label": "interval",
-        "name": "cusInterval",
-        "options": [
-          {
-            "selected": false,
-            "text": "10s",
-            "value": "10s"
-          },
-          {
-            "selected": false,
-            "text": "30s",
-            "value": "30s"
-          },
-          {
-            "selected": false,
-            "text": "1m",
-            "value": "1m"
-          },
-          {
-            "selected": true,
-            "text": "5m",
-            "value": "5m"
-          },
-          {
-            "selected": false,
-            "text": "15m",
-            "value": "15m"
-          }
-        ],
-        "query": "10s, 30s,1m,5m,15m",
-        "queryValue": "",
-        "refresh": 2,
-        "skipUrlSync": false,
-        "type": "interval"
       }
     ]
   },
   "time": {
-    "from": "now-24h",
+    "from": "now-6h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
   "title": "Computer Nodes",
   "uid": "ReLNlTn4k",
-  "version": 31,
+  "version": 2,
   "weekStart": ""
 }

@@ -33,7 +33,6 @@ def collect_process_info():
 
         cpu_info = proc['cpu_info']
         
-
         mem_info = proc['mem_info']
         disk_info = proc['disk_info']
 

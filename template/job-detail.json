@@ -27,8 +27,7 @@
          },
          {
             "datasource":{
-               "type":"influxdb",
-               "uid":"${DS_INFLUXDB}"
+               "type":"influxdb"
             },
             "fieldConfig":{
                "defaults":{
@@ -114,8 +113,7 @@
                {
                   "alias":"$tag_pid",
                   "datasource":{
-                     "type":"influxdb",
-                     "uid":"${DS_INFLUXDB}"
+                     "type":"influxdb"
                   },
                   "groupBy":[
                      {
@@ -175,8 +173,7 @@
          },
          {
             "datasource":{
-               "type":"influxdb",
-               "uid":"${DS_INFLUXDB}"
+               "type":"influxdb"
             },
             "fieldConfig":{
                "defaults":{
@@ -262,8 +259,7 @@
                {
                   "alias":"$tag_pid",
                   "datasource":{
-                     "type":"influxdb",
-                     "uid":"${DS_INFLUXDB}"
+                     "type":"influxdb"
                   },
                   "groupBy":[
                      {
@@ -320,8 +316,7 @@
          },
          {
             "datasource":{
-               "type":"influxdb",
-               "uid":"${DS_INFLUXDB}"
+               "type":"influxdb"
             },
             "fieldConfig":{
                "defaults":{
@@ -407,8 +402,7 @@
                {
                   "alias":"$tag_pid",
                   "datasource":{
-                     "type":"influxdb",
-                     "uid":"${DS_INFLUXDB}"
+                     "type":"influxdb"
                   },
                   "groupBy":[
                      {
@@ -481,8 +475,7 @@
          },
          {
             "datasource":{
-               "type":"influxdb",
-               "uid":"${DS_INFLUXDB}"
+               "type":"influxdb"
             },
             "fieldConfig":{
                "defaults":{
@@ -568,8 +561,7 @@
                {
                   "alias":"$tag_host",
                   "datasource":{
-                     "type":"influxdb",
-                     "uid":"${DS_INFLUXDB}"
+                     "type":"influxdb"
                   },
                   "groupBy":[
                      {
@@ -620,8 +612,7 @@
          },
          {
             "datasource":{
-               "type":"influxdb",
-               "uid":"${DS_INFLUXDB}"
+               "type":"influxdb"
             },
             "fieldConfig":{
                "defaults":{
@@ -707,8 +698,7 @@
                {
                   "alias":"$tag_host",
                   "datasource":{
-                     "type":"influxdb",
-                     "uid":"${DS_INFLUXDB}"
+                     "type":"influxdb"
                   },
                   "groupBy":[
                      {
@@ -759,8 +749,7 @@
          },
          {
             "datasource":{
-               "type":"influxdb",
-               "uid":"${DS_INFLUXDB}"
+               "type":"influxdb"
             },
             "fieldConfig":{
                "defaults":{
@@ -846,8 +835,7 @@
                {
                   "alias":"$tag_host",
                   "datasource":{
-                     "type":"influxdb",
-                     "uid":"${DS_INFLUXDB}"
+                     "type":"influxdb"
                   },
                   "groupBy":[
                      {
@@ -912,8 +900,7 @@
                   
                },
                "datasource":{
-                  "type":"influxdb",
-                  "uid":"${DS_INFLUXDB}"
+                  "type":"influxdb"
                },
                "definition":"SHOW TAG VALUES FROM \"proc_cpu_use\" WITH KEY = project_name",
                "hide":0,
@@ -936,8 +923,7 @@
                   
                },
                "datasource":{
-                  "type":"influxdb",
-                  "uid":"${DS_INFLUXDB}"
+                  "type":"influxdb"
                },
                "definition":"SHOW TAG VALUES FROM \"proc_cpu_use\" WITH KEY = host where pid =~ /^$JobName$/",
                "hide":2,
@@ -959,8 +945,7 @@
                   
                },
                "datasource":{
-                  "type":"influxdb",
-                  "uid":"${DS_INFLUXDB}"
+                  "type":"influxdb"
                },
                "definition":"SHOW TAG VALUES FROM \"proc_cpu_use\" WITH KEY = pid where project_name =~ /^$ProjectName$/",
                "hide":0,

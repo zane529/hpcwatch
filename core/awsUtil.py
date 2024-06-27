@@ -52,7 +52,7 @@ def get_instance_metadata():
     headers = {'X-aws-ec2-metadata-token': token}
     response = requests.get(METADATA_URL, headers=headers)
     metadata = response.json()
-    return json.dumps(metadata, indent=4)
+    return metadata
 
 def get_aws_instance_type():
     """

@@ -12,15 +12,17 @@ class CollectNode(object):
     """
     Collect node info.
     """
+    
+    def __init__(self) -> None:
+        instance_meta = awsUtil.get_instance_metadata()
 
     def collect_node_cpu_info(self):
         """
         Collect host cpu.
         :return:
         """
-        
-        instance_id = awsUtil.get_aws_instance_id()
-        instance_type = awsUtil.get_aws_instance_type()
+        instance_id = self.instance_meta.get('instanceId', '')
+        instance_type = self.instance_meta.get('instanceType', '')
         cpu_info = node.get_cpu_state()
         
         registry = CollectorRegistry()
@@ -44,16 +46,16 @@ class CollectNode(object):
         """
         Collect node memory.
         """
-        instance_id = awsUtil.get_aws_instance_id()
-        instance_type = awsUtil.get_aws_instance_type()
+        instance_id = self.instance_meta.get('instanceId', '')
+        instance_type = self.instance_meta.get('instanceType', '')
         mem_info = node.get_memory_state()
             
         registry = CollectorRegistry()
                 
-        mem_use = Gauge('mem_used', 'The cpu use of node', ['host', 'instance_type'], registry=registry)
+        mem_use = Gauge('mem_used', 'The cpu mem of node', ['host', 'instance_type'], registry=registry)
         mem_use.labels(host=instance_id, instance_type=instance_type).set(mem_info.get('mem_used'))
         
-        mem_per_used = Gauge('mem_used_per', 'The cpu use of node', ['host', 'instance_type'], registry=registry)
+        mem_per_used = Gauge('mem_used_per', 'The mem use percent of node', ['host', 'instance_type'], registry=registry)
         mem_per_used.labels(host=instance_id, instance_type=instance_type).set(mem_info.get('mem_used_per'))
         
         push_info('node_mem_use', registry)
@@ -63,16 +65,16 @@ class CollectNode(object):
         """
         Collect node disk.
         """
-        instance_id = awsUtil.get_aws_instance_id()
-        instance_type = awsUtil.get_aws_instance_type()
+        instance_id = self.instance_meta.get('instanceId', '')
+        instance_type = self.instance_meta.get('instanceType', '')
         disk_info = node.get_disk_state()
                 
         registry = CollectorRegistry()
                 
-        disk_used = Gauge('disk_used', 'The cpu use of node', ['host', 'instance_type'], registry=registry)
+        disk_used = Gauge('disk_used', 'The disk use of node', ['host', 'instance_type'], registry=registry)
         disk_used.labels(host=instance_id, instance_type=instance_type).set(disk_info.get('disk_used'))
         
-        disk_used_per = Gauge('mem_used_per', 'The cpu use of node', ['host', 'instance_type'], registry=registry)
+        disk_used_per = Gauge('mem_used_per', 'The disk use percent of node', ['host', 'instance_type'], registry=registry)
         disk_used_per.labels(host=instance_id, instance_type=instance_type).set(disk_info.get('disk_used_per'))
         
         push_info('node_disk_use', registry)

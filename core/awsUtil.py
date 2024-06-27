@@ -3,8 +3,10 @@ import os
 from tokenize import Name
 import urllib3
 import psutil
+import json
 from processinfo import ProcInfo
 import boto3
+import requests
 
 def get_aws_parameter(key):
     """
@@ -18,6 +20,39 @@ def get_aws_parameter(key):
     except Exception as e:
         print(e)
     return result
+
+def get_instance_metadata():
+    """
+    Get instance metadata.
+    :return: json format metadata.
+    {
+    "devpayProductCodes": null,
+    "availabilityZone": "us-west-2a",
+    "instanceId": "i-0346506d3d1960e8c",
+    "pendingTime": "2024-06-26T10:22:37Z",
+    "marketplaceProductCodes": null,
+    "region": "us-west-2",
+    "imageId": "ami-051cb319371f89591",
+    "version": "2017-09-30",
+    "architecture": "x86_64",
+    "billingProducts": null,
+    "kernelId": null,
+    "ramdiskId": null,
+    "privateIp": "10.0.17.68",
+    "instanceType": "c6i.large",
+    "accountId": "763309664766"
+    }
+    """
+    TOKEN_URL = "http://169.254.169.254/latest/api/token"
+    headers = {'X-aws-ec2-metadata-token-ttl-seconds': '21600'}
+    response = requests.put(TOKEN_URL, headers=headers)
+    token = response.text
+
+    METADATA_URL = "http://169.254.169.254/latest/dynamic/instance-identity/document"
+    headers = {'X-aws-ec2-metadata-token': token}
+    response = requests.get(METADATA_URL, headers=headers)
+    metadata = response.json()
+    return json.dumps(metadata, indent=4)
 
 def get_aws_instance_type():
     """

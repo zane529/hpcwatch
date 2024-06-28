@@ -8,6 +8,12 @@ from processinfo import ProcInfo
 import boto3
 import requests
 
+def get_default_cluster_name():
+    """
+    Get default cluster name.
+    """
+    return 'pcluster-pro'
+
 def get_aws_parameter(key):
     """
     Get aws parameter.

@@ -2,8 +2,6 @@
 import os
 from tokenize import Name
 import urllib3
-import psutil
-import json
 from processinfo import ProcInfo
 import boto3
 import requests

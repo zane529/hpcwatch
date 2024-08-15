@@ -10,7 +10,12 @@ from prometheus_client import CollectorRegistry, Gauge
 node = NodeResourceV2()
 
 
-def collect_process_info():
+def collect_process_info(cluster=None):
+    
+    cluster_name = awsUtil.get_default_cluster_name()
+    
+    if cluster:
+        cluster_name = cluster
     
     instance_meta = awsUtil.get_instance_metadata()
     
@@ -44,17 +49,17 @@ def collect_process_info():
         pid = job_id + '_' + pid
         
         # Collect process cpu info.
-        proc_cpu_use = Gauge('proc_cpu_use', 'The cpu use of job', ['instance', 'instance_type', 'pid', 'project_name'], registry=registry)
-        proc_cpu_use.labels(instance=instance_id, instance_type=instance_type, pid=pid, project_name=project_name).set(cpu_info.get('cpu_use'))
+        proc_cpu_use = Gauge('proc_cpu_use', 'The cpu use of job', ['instance', 'instance_type', 'cluster', 'pid', 'project_name'], registry=registry)
+        proc_cpu_use.labels(instance=instance_id, instance_type=instance_type, cluster=cluster_name, pid=pid, project_name=project_name).set(cpu_info.get('cpu_use'))
 
         # Collect process mem info.    
-        proc_mem_use = Gauge('proc_mem_use', 'The mem use of job', ['instance', 'instance_type', 'pid', 'project_name'], registry=registry)
-        proc_mem_use.labels(instance=instance_id, instance_type=instance_type, pid=pid, project_name=project_name).set(mem_info.get('mem_use'))
+        proc_mem_use = Gauge('proc_mem_use', 'The mem use of job', ['instance', 'instance_type', 'cluster', 'pid', 'project_name'], registry=registry)
+        proc_mem_use.labels(instance=instance_id, instance_type=instance_type, cluster=cluster_name, pid=pid, project_name=project_name).set(mem_info.get('mem_use'))
 
         # Collect process disk info.
         if disk_info:   
-            proc_disk_use = Gauge('proc_disk_use', 'The disk use of job', ['instance', 'instance_type', 'pid', 'project_name'], registry=registry)
-            proc_disk_use.labels(instance=instance_id, instance_type=instance_type, pid=pid, project_name=project_name).set(disk_info.get('disk_use'))
+            proc_disk_use = Gauge('proc_disk_use', 'The disk use of job', ['instance', 'instance_type', 'cluster', 'pid', 'project_name'], registry=registry)
+            proc_disk_use.labels(instance=instance_id, instance_type=instance_type, cluster=cluster_name, pid=pid, project_name=project_name).set(disk_info.get('disk_use'))
 
     push_info('job_info', registry)
 

@@ -1,4 +1,4 @@
 APScheduler==3.10.4
 psutil==5.9.6
 boto3==1.28.35
-influxdb==5.3.1
+prometheus_client==0.17.1

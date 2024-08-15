@@ -3,11 +3,11 @@ import os
 from influxdb import InfluxDBClient
 import awsUtil
 
+HOST = awsUtil.get_aws_parameter('dbhost')
+PORT = awsUtil.get_aws_parameter('dbport')
+USER = awsUtil.get_aws_parameter('dbuser')
+PASS = awsUtil.get_aws_parameter('dbpass')
 
-HOST = awsUtil.get_aws_parameter('InfluxdbPrivateIp')
-PORT = 8086
-USER = awsUtil.get_aws_parameter('InfluxdbUser')
-PASS = awsUtil.get_aws_parameter('InfluxdbPass')
 DBNAME = 'hpccollect'
 
 

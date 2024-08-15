@@ -5,7 +5,7 @@ import awsUtil
 import os
 
 
-cluster_name = os.environ['CLUSTER_NAME']
+cluster_name = os.getenv('CLUSTER_NAME')
 
 if cluster_name:
     HOST = awsUtil.get_aws_parameter(cluster_name + '_dbhost')

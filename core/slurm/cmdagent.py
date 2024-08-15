@@ -24,8 +24,11 @@ def get_slurm_jobs(nodelist):
         command = SLURM_PATH + 'squeue -h -o "%i,%j,%N" | grep ' + nodelist
     else:
         command = SLURM_PATH + 'squeue -h -o "%i,%j,%N" | grep ' + nodelist
+    print(command)
     output = subprocess.check_output(command, shell=True, universal_newlines=True)
+    print(output)
     lines = output.strip().split('\n')
+    
 
     jobs = []
     for line in lines:

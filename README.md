@@ -41,3 +41,4 @@ To run the Java examples, you'll need to install Maven. For more information, se
 * [Postman](https://www.getpostman.com/)
 
 You can use Postman to test API Gateway.
+test

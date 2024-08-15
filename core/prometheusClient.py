@@ -2,11 +2,21 @@
 from prometheus_client import push_to_gateway
 from prometheus_client.exposition import basic_auth_handler
 import awsUtil
+import os
 
-HOST = awsUtil.get_aws_parameter('dbhost')
-PORT = awsUtil.get_aws_parameter('dbport')
-USER = awsUtil.get_aws_parameter('dbuser')
-PASS = awsUtil.get_aws_parameter('dbpass')
+
+cluster_name = os.environ['CLUSTER_NAME']
+
+if cluster_name:
+    HOST = awsUtil.get_aws_parameter(cluster_name + '_dbhost')
+    PORT = awsUtil.get_aws_parameter(cluster_name + '_dbport')
+    USER = awsUtil.get_aws_parameter(cluster_name + '_dbuser')
+    PASS = awsUtil.get_aws_parameter(cluster_name + '_dbpass')
+else:
+    HOST = awsUtil.get_aws_parameter('dbhost')
+    PORT = awsUtil.get_aws_parameter('dbport')
+    USER = awsUtil.get_aws_parameter('dbuser')
+    PASS = awsUtil.get_aws_parameter('dbpass')
 
 def auth_handler(url, method, timeout, headers, data):
     return basic_auth_handler(url, method, timeout, headers, data, USER, PASS)

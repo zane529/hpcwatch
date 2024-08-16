@@ -31,6 +31,7 @@ def get_aws_parameter(key):
         result = response['Parameter']['Value']
     except Exception as e:
         print(e)
+        print('Parameter key is: ' + key)
     return result
 
 def get_instance_metadata():

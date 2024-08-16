@@ -42,7 +42,7 @@ class NodeResourceV2(object):
         i_mem_used = 0
         i_mem_per_used = 0
         try:
-            i_mem_used = awsUtil.to_int(mem_used))
+            i_mem_used = awsUtil.to_int(mem_used)
             i_mem_per_used = awsUtil.to_int(mem_used_per)
         except Exception as e:
             print(e)

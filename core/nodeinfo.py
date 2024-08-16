@@ -27,9 +27,9 @@ class NodeResourceV2(object):
         Get cpu info.
         :return:
         """
-        cpu_percent = int(psutil.cpu_percent())
+        cpu_percent = awsUtil.to_int(psutil.cpu_percent())
         loadavg = psutil.getloadavg()
-        return {'cpu_percent': cpu_percent, 'loadavg_5': loadavg[0], 'loadavg_10': loadavg[1], 'loadavg_15': loadavg[2]}
+        return {'cpu_percent': cpu_percent, 'loadavg_5': awsUtil.to_int(loadavg[0]), 'loadavg_10': awsUtil.to_int(loadavg[1]), 'loadavg_15': awsUtil.to_int(loadavg[2])}
 
     def get_memory_state(self):
         """
@@ -42,8 +42,8 @@ class NodeResourceV2(object):
         i_mem_used = 0
         i_mem_per_used = 0
         try:
-            i_mem_used = int(mem_used)
-            i_mem_per_used = int(mem_used_per)
+            i_mem_used = awsUtil.to_int(mem_used))
+            i_mem_per_used = awsUtil.to_int(mem_used_per)
         except Exception as e:
             print(e)
         return {'mem_used': i_mem_used, 'mem_used_per': i_mem_per_used}
@@ -61,8 +61,8 @@ class NodeResourceV2(object):
         i_disk_per_used = 0
         
         try:
-            i_disk_used = int(disk_used)
-            i_disk_per_used = int(disk_used_per)
+            i_disk_used = awsUtil.to_int(disk_used)
+            i_disk_per_used = awsUtil.to_int(disk_used_per)
         except Exception as e:
             print(e)
         return {'disk_used': i_disk_used, 'disk_used_per': i_disk_per_used}
@@ -81,15 +81,15 @@ class NodeResourceV2(object):
                 pro_tmp = ProcInfo()
                 children = proc.children()
                 awsUtil.count_cpu_percent(proc, children, pro_tmp)
-                mem_info = {'mem_use': pro_tmp.mem_all}
+                mem_info = {'mem_use': awsUtil.to_int(pro_tmp.mem_all)}
                 cpu_use = pro_tmp.cpu_all
-                cpu_info = {'cpu_use': cpu_use}
+                cpu_info = {'cpu_use': awsUtil.to_int(cpu_use)}
                 # Collect disk info.
                 disk_info = None
                 if os.path.exists(workdir):
                     disk_size = 0
                     disk_used = awsUtil.getFileSize(workdir, disk_size)
-                    disk_info = {'disk_use': disk_used}    
+                    disk_info = {'disk_use': awsUtil.to_int(disk_used)}    
                 pro_info = {'pid': pid, 'cpu_info': cpu_info, 'mem_info': mem_info,
                             'disk_info': disk_info, 'project_name': project_name}
             except Exception as e:
@@ -116,17 +116,17 @@ class NodeResourceV2(object):
                     pro_tmp = ProcInfo()
                     children = proc.children()
                     awsUtil.count_cpu_percent(proc, children, pro_tmp)
-                    mem_info = {'mem_use': pro_tmp.mem_all}
+                    mem_info = {'mem_use': awsUtil.to_int(pro_tmp.mem_all)}
                     cpu_use = pro_tmp.cpu_all
                     cpu_percent = cpu_use
                     if require_cpus and require_cpus > 0:
                         cpu_percent = cpu_use//require_cpus
                     r_cpu_info = 0
                     try:
-                        r_cpu_info = int(cpu_percent)
+                        r_cpu_info = awsUtil.to_int(cpu_percent)
                     except Exception as e:
                         r_cpu_info = 0
-                    cpu_info = {'cpu_use': r_cpu_info}
+                    cpu_info = {'cpu_use': awsUtil.to_int(r_cpu_info)}
                     # Collect disk info.
                     disk_info = None
                     if DISK_PATH:
@@ -135,7 +135,7 @@ class NodeResourceV2(object):
                             disk_size = 0
                             disk_used = awsUtil.getFileSize(
                                 disk_path, disk_size)
-                            disk_info = {'disk_use': disk_used}
+                            disk_info = {'disk_use': awsUtil.to_int(disk_used)}
 
                     pro_info = {'pid': pro_id, 'cpu_info': cpu_info, 'mem_info': mem_info,
                                 'disk_info': disk_info, 'project_name': project_name}
@@ -162,9 +162,9 @@ class NodeResource(object):
         Get cpu info.
         :return:
         """
-        cpu_percent = int(psutil.cpu_percent())
+        cpu_percent = awsUtil.to_int(psutil.cpu_percent())
         loadavg = psutil.getloadavg()
-        return {'cpu_percent': cpu_percent, 'loadavg_5': loadavg[0], 'loadavg_10': loadavg[1], 'loadavg_15': loadavg[2]}
+        return {'cpu_percent': cpu_percent, 'loadavg_5': awsUtil.to_int(loadavg[0]), 'loadavg_10': awsUtil.to_int(loadavg[1]), 'loadavg_15': awsUtil.to_int(loadavg[2])}
 
     def get_memory_state(self):
         """
@@ -177,8 +177,8 @@ class NodeResource(object):
         i_mem_used = 0
         i_mem_per_used = 0
         try:
-            i_mem_used = int(mem_used)
-            i_mem_per_used = int(mem_used_per)
+            i_mem_used = awsUtil.to_int(mem_used)
+            i_mem_per_used = awsUtil.to_int(mem_used_per)
         except Exception as e:
             print(e)
         return {'mem_used': i_mem_used, 'mem_used_per': i_mem_per_used}
@@ -193,7 +193,7 @@ class NodeResource(object):
         disk_used = disk_stat.percent
         i_disk_used = 0
         try:
-            i_disk_used = int(disk_used)
+            i_disk_used = awsUtil.to_int(disk_used)
         except Exception as e:
             print(e)
         return {'disk_used': i_disk_used}
@@ -222,7 +222,7 @@ class NodeResource(object):
                         cpu_percent = cpu_use//require_cpus
                     r_cpu_info = 0
                     try:
-                        r_cpu_info = int(cpu_percent)
+                        r_cpu_info = awsUtil.to_int(cpu_percent)
                     except Exception as e:
                         r_cpu_info = 0
                     cpu_info = {'cpu_use': r_cpu_info}
@@ -234,7 +234,7 @@ class NodeResource(object):
                             disk_size = 0
                             disk_used = awsUtil.getFileSize(
                                 disk_path, disk_size)
-                            disk_info = {'disk_use': disk_used}
+                            disk_info = {'disk_use': awsUtil.to_int(disk_used)}
 
                     pro_info = {'pid': pro_id, 'cpu_info': cpu_info, 'mem_info': mem_info,
                                 'disk_info': disk_info, 'project_name': project_name}

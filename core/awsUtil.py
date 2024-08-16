@@ -12,6 +12,14 @@ def get_default_cluster_name():
     """
     return 'pcluster-pro'
 
+def to_int(value):
+    result = 0 
+    try:
+        result = int(value)
+    except:
+        pass
+    return result
+
 def get_aws_parameter(key):
     """
     Get aws parameter.

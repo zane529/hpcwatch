@@ -74,7 +74,7 @@ class CollectNode(object):
         disk_used = Gauge('disk_used', 'The disk use of node', ['instance', 'instance_type'], registry=registry)
         disk_used.labels(instance=instance_id, instance_type=instance_type).set(disk_info.get('disk_used'))
         
-        disk_used_per = Gauge('disk_used_per', 'The disk use percent of node', ['instance', 'instance_type'], registry=registry)
+        disk_used_per = Gauge('mem_used_per', 'The disk use percent of node', ['instance', 'instance_type'], registry=registry)
         disk_used_per.labels(instance=instance_id, instance_type=instance_type).set(disk_info.get('disk_used_per'))
         
         push_info('node_disk_use', registry)

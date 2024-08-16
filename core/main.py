@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from apscheduler.schedulers.blocking import BlockingScheduler
 from collectNodePrometheus import CollectNode
-import collectProcessPrometheusCluster as collectProcess
+import collectProcessPrometheus as collectProcess
 
 cn = CollectNode()
 

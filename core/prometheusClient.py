@@ -29,7 +29,6 @@ def push_info(job, registry):
     """
     
     try:
-        print(registry)
         push_to_gateway('%s:%s' %(HOST, PORT), job=job, registry=registry, handler=auth_handler)
     except Exception as e:
         print('Push message error !!!')

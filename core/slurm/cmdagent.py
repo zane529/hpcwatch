@@ -21,7 +21,7 @@ def get_slurm_jobs(nodelist):
     """
     # squeue -h -o "%i,%N" | grep node-1
     if not os.path.exists(SLURM_PATH):
-        command = SLURM_PATH + 'squeue -h -o "%i,%j,%N" | grep ' + nodelist
+        command = 'squeue -h -o "%i,%j,%N" | grep ' + nodelist
     else:
         command = SLURM_PATH + 'squeue -h -o "%i,%j,%N" | grep ' + nodelist
 

@@ -69,7 +69,7 @@ def collect_process_info():
             proc_disk_use.labels(job=i_p_uuid, instance=disk_use, instance_id=instance_id, instance_type=instance_type, pid=pid, project_name=project_name).set(disk_use)
 
         if any(registry.collect()):
-            push_info('job_info', registry)
+            push_info(registry)
         else:
             print("No metrics to push, registry is empty")
 

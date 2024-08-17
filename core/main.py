@@ -16,8 +16,8 @@ def collect_process_info():
 
 if __name__ == '__main__':
     sched = BlockingScheduler()
-    sched.add_job(collect_node_mem_info, 'interval', seconds=10, id='node_mem')
-    sched.add_job(collect_node_cpu_info, 'interval', seconds=10, id='node_cpu')
-    sched.add_job(collect_node_disk_info, 'interval', seconds=10, id='node_disk')
+    #sched.add_job(collect_node_mem_info, 'interval', seconds=10, id='node_mem')
+    #sched.add_job(collect_node_cpu_info, 'interval', seconds=10, id='node_cpu')
+    #sched.add_job(collect_node_disk_info, 'interval', seconds=10, id='node_disk')
     sched.add_job(collect_process_info, 'interval', seconds=10, id='process_info')
     sched.start()

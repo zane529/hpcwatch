@@ -5,12 +5,17 @@ import slurm.cmdagent as cmdagent
 from prometheusClient import push_info
 import awsUtil
 from prometheus_client import CollectorRegistry, Gauge
+import time, uuid
 
 # Init node info.
 node = NodeResourceV2()
 
 
 def collect_process_info():
+
+    start_time = time.time()
+
+    run_id = str(uuid.uuid4())[:8]
     
     instance_meta = awsUtil.get_instance_metadata()
     
@@ -57,6 +62,13 @@ def collect_process_info():
             proc_disk_use.labels(instance=instance_id, instance_type=instance_type, pid=pid, project_name=project_name).set(disk_info.get('disk_use'))
 
     push_info('job_info', registry)
+
+    end_time = time.time()
+
+    print(f"[{run_id}] executed in {end_time - start_time:.4f} seconds")
+    print(f"[{run_id}] executed in {end_time - start_time:.4f} seconds")
+
+
 
 if __name__ == '__main__':
     collect_process_info()

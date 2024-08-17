@@ -29,6 +29,14 @@ def push_info(job, registry):
     """
     
     try:
+        print("Metrics being pushed to Pushgateway:")
+        for metric in registry.collect():
+            print(f"Metric Name: {metric.name}")
+            print(f"Metric Help: {metric.documentation}")
+            for sample in metric.samples:
+                print(f"  Sample: {sample.name}, Value: {sample.value}, Labels: {sample.labels}")
+            print("---")
+
         push_to_gateway('%s:%s' %(HOST, PORT), job=job, registry=registry, handler=auth_handler)
     except Exception as e:
         print('Push message error !!!')

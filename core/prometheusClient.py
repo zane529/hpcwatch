@@ -22,7 +22,7 @@ def auth_handler(url, method, timeout, headers, data):
     return basic_auth_handler(url, method, timeout, headers, data, USER, PASS)
 
 
-def push_info(job, registry, client=None):
+def push_info(job, registry, client):
     """
     Get PushGateway client.
     :return:

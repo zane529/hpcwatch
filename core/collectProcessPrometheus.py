@@ -52,19 +52,19 @@ def collect_process_info():
 
         # Collect process cpu info.
         cpu_use = cpu_info.get('cpu_use')
-        proc_cpu_use = Gauge('proc_cpu_use', 'The cpu use of job', ['instance', 'instance_id', 'instance_type', 'pid', 'project_name'], registry=registry)
-        proc_cpu_use.labels(instance=cpu_use, instance_id=instance_id, instance_type=instance_type, pid=pid, project_name=project_name).set(cpu_use)
+        proc_cpu_use = Gauge('proc_cpu_use', 'The cpu use of job', ['instance_id', 'instance_type', 'project_name'], registry=registry)
+        proc_cpu_use.labels(instance=pid, instance_id=instance_id, instance_type=instance_type, project_name=project_name).set(cpu_use)
 
         # Collect process mem info.
         mem_use = mem_info.get('mem_use')
-        proc_mem_use = Gauge('proc_mem_use', 'The mem use of job', ['instance', 'instance_id', 'instance_type', 'pid', 'project_name'], registry=registry)
-        proc_mem_use.labels(instance=mem_use, instance_id=instance_id, instance_type=instance_type, pid=pid, project_name=project_name).set(mem_use)
+        proc_mem_use = Gauge('proc_mem_use', 'The mem use of job', ['instance', 'instance_id', 'instance_type', 'project_name'], registry=registry)
+        proc_mem_use.labels(instance=pid, instance_id=instance_id, instance_type=instance_type, project_name=project_name).set(mem_use)
 
         # Collect process disk info.
         if disk_info:
             disk_use = disk_info.get('disk_use')
-            proc_disk_use = Gauge('proc_disk_use', 'The disk use of job', ['instance', 'instance_id', 'instance_type', 'pid', 'project_name'], registry=registry)
-            proc_disk_use.labels(instance=disk_use, instance_id=instance_id, instance_type=instance_type, pid=pid, project_name=project_name).set(disk_use)
+            proc_disk_use = Gauge('proc_disk_use', 'The disk use of job', ['instance', 'instance_id', 'instance_type', 'project_name'], registry=registry)
+            proc_disk_use.labels(instance=pid, instance_id=instance_id, instance_type=instance_type, project_name=project_name).set(disk_use)
 
         if any(registry.collect()):
             i_p_uuid = instance_id + '_' + pid

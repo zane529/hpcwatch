@@ -61,8 +61,10 @@ def collect_process_info():
             proc_disk_use = Gauge('proc_disk_use', 'The disk use of job', ['instance', 'instance_type', 'pid', 'project_name'], registry=registry)
             proc_disk_use.labels(instance=instance_id, instance_type=instance_type, pid=pid, project_name=project_name).set(disk_info.get('disk_use'))
 
-    if registry.collect() and len(registry.collect()) > 0:
+    if any(registry.collect()):
         push_info('job_info', registry)
+    else:
+        print("No metrics to push, registry is empty")
 
     end_time = time.time()
 

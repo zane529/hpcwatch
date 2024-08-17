@@ -42,8 +42,11 @@ class CollectNode(object):
         
         g_node_cpu_use_load15 = Gauge('node_cpu_loadavg_15', 'The cpu load 15 use of node', ['instance', 'instance_type', 'cluster'], registry=registry)
         g_node_cpu_use_load15.labels(instance=instance_id, instance_type=instance_type, cluster=self.cluster_name).set(cpu_info.get('loadavg_15'))
-        
-        push_info('node_cpu_use', registry)
+
+        if any(registry.collect()):
+            push_info('node_cpu_use', registry, instance_id)
+        else:
+            print("No metrics to push, registry is empty")
         
 
     def collect_node_mem_info(self):
@@ -62,7 +65,10 @@ class CollectNode(object):
         mem_per_used = Gauge('mem_used_per', 'The mem use percent of node', ['instance', 'instance_type', 'cluster'], registry=registry)
         mem_per_used.labels(instance=instance_id, instance_type=instance_type, cluster=self.cluster_name).set(mem_info.get('mem_used_per'))
         
-        push_info('node_mem_use', registry)
+        if any(registry.collect()):
+            push_info('node_mem_use', registry, instance_id)
+        else:
+            print("No metrics to push, registry is empty")
         
 
     def collect_node_disk_info(self):
@@ -81,7 +87,10 @@ class CollectNode(object):
         disk_used_per = Gauge('disk_used_per', 'The disk use percent of node', ['instance', 'instance_type', 'cluster'], registry=registry)
         disk_used_per.labels(instance=instance_id, instance_type=instance_type, cluster=self.cluster_name).set(disk_info.get('disk_used_per'))
         
-        push_info('node_disk_use', registry)
+        if any(registry.collect()):
+            push_info('node_disk_use', registry, instance_id)
+        else:
+            print("No metrics to push, registry is empty")
 
 
 if __name__ == '__main__':

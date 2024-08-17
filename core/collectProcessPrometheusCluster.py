@@ -49,19 +49,27 @@ def collect_process_info(cluster=None):
         pid = job_id + '_' + pid
         
         # Collect process cpu info.
-        proc_cpu_use = Gauge('proc_cpu_use', 'The cpu use of job', ['instance', 'instance_type', 'cluster', 'pid', 'project_name'], registry=registry)
-        proc_cpu_use.labels(instance=instance_id, instance_type=instance_type, cluster=cluster_name, pid=pid, project_name=project_name).set(cpu_info.get('cpu_use'))
+        cpu_use = cpu_info.get('cpu_use')
+        proc_cpu_use = Gauge('proc_cpu_use', 'The cpu use of job', ['instance', 'instance_id', 'instance_type', 'project_name', 'cluster'], registry=registry)
+        proc_cpu_use.labels(instance=pid, instance_id=instance_id, instance_type=instance_type, project_name=project_name, cluster=cluster_name).set(cpu_use)
 
-        # Collect process mem info.    
-        proc_mem_use = Gauge('proc_mem_use', 'The mem use of job', ['instance', 'instance_type', 'cluster', 'pid', 'project_name'], registry=registry)
-        proc_mem_use.labels(instance=instance_id, instance_type=instance_type, cluster=cluster_name, pid=pid, project_name=project_name).set(mem_info.get('mem_use'))
+        # Collect process mem info.
+        mem_use = mem_info.get('mem_use')
+        proc_mem_use = Gauge('proc_mem_use', 'The mem use of job', ['instance', 'instance_id', 'instance_type', 'project_name', 'cluster'], registry=registry)
+        proc_mem_use.labels(instance=pid, instance_id=instance_id, instance_type=instance_type, project_name=project_name, cluster=cluster_name).set(mem_use)
 
         # Collect process disk info.
-        if disk_info:   
-            proc_disk_use = Gauge('proc_disk_use', 'The disk use of job', ['instance', 'instance_type', 'cluster', 'pid', 'project_name'], registry=registry)
-            proc_disk_use.labels(instance=instance_id, instance_type=instance_type, cluster=cluster_name, pid=pid, project_name=project_name).set(disk_info.get('disk_use'))
+        if disk_info:
+            disk_use = disk_info.get('disk_use')
+            proc_disk_use = Gauge('proc_disk_use', 'The disk use of job', ['instance', 'instance_id', 'instance_type', 'project_name', 'cluster'], registry=registry)
+            proc_disk_use.labels(instance=pid, instance_id=instance_id, instance_type=instance_type, project_name=project_name, cluster=cluster_name).set(disk_use)
 
-    push_info('job_info', registry)
+        if any(registry.collect()):
+            i_p_uuid = instance_id + '_' + pid
+            push_info('job_info', registry, i_p_uuid)
+        else:
+            print("No metrics to push, registry is empty")
+
 
 if __name__ == '__main__':
     collect_process_info()

@@ -52,7 +52,7 @@ def collect_process_info():
 
         # Collect process cpu info.
         cpu_use = cpu_info.get('cpu_use')
-        proc_cpu_use = Gauge('proc_cpu_use', 'The cpu use of job', ['instance_id', 'instance_type', 'project_name'], registry=registry)
+        proc_cpu_use = Gauge('proc_cpu_use', 'The cpu use of job', ['instance', 'instance_id', 'instance_type', 'project_name'], registry=registry)
         proc_cpu_use.labels(instance=pid, instance_id=instance_id, instance_type=instance_type, project_name=project_name).set(cpu_use)
 
         # Collect process mem info.

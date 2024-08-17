@@ -27,21 +27,23 @@ class CollectNode(object):
         
         registry = CollectorRegistry()
                 
-        g_node_cpu_use_percent = Gauge('node_cpu_use_percent', 'The cpu use of node', ['instance_id', 'instance_type'], registry=registry)
-        g_node_cpu_use_percent.labels(instance_id=instance_id, instance_type=instance_type).set(cpu_info.get('cpu_percent'))
+        g_node_cpu_use_percent = Gauge('node_cpu_use_percent', 'The cpu use of node', ['instance', 'instance_type'], registry=registry)
+        g_node_cpu_use_percent.labels(instance=instance_id, instance_type=instance_type).set(cpu_info.get('cpu_percent'))
         
-        g_node_cpu_use_load5 = Gauge('node_cpu_loadavg_5', 'The cpu load 5 use of node', ['instance_id', 'instance_type'], registry=registry)
-        g_node_cpu_use_load5.labels(instance_id=instance_id, instance_type=instance_type).set(cpu_info.get('loadavg_5'))
+        g_node_cpu_use_load5 = Gauge('node_cpu_loadavg_5', 'The cpu load 5 use of node', ['instance', 'instance_type'], registry=registry)
+        g_node_cpu_use_load5.labels(instance=instance_id, instance_type=instance_type).set(cpu_info.get('loadavg_5'))
         
-        g_node_cpu_use_load10 = Gauge('node_cpu_loadavg_10', 'The cpu load 10 use of node', ['instance_id', 'instance_type'], registry=registry)
-        g_node_cpu_use_load10.labels(instance_id=instance_id, instance_type=instance_type).set(cpu_info.get('loadavg_10'))
+        g_node_cpu_use_load10 = Gauge('node_cpu_loadavg_10', 'The cpu load 10 use of node', ['instance', 'instance_type'], registry=registry)
+        g_node_cpu_use_load10.labels(instance=instance_id, instance_type=instance_type).set(cpu_info.get('loadavg_10'))
         
-        g_node_cpu_use_load15 = Gauge('node_cpu_loadavg_15', 'The cpu load 15 use of node', ['instance_id', 'instance_type'], registry=registry)
-        g_node_cpu_use_load15.labels(instance_id=instance_id, instance_type=instance_type).set(cpu_info.get('loadavg_15'))
-        
-        push_info('node_cpu_use', registry)
-        
+        g_node_cpu_use_load15 = Gauge('node_cpu_loadavg_15', 'The cpu load 15 use of node', ['instance', 'instance_type'], registry=registry)
+        g_node_cpu_use_load15.labels(instance=instance_id, instance_type=instance_type).set(cpu_info.get('loadavg_15'))
 
+        if any(registry.collect()):
+            push_info('node_cpu_use', registry, instance_id)
+        else:
+            print("No metrics to push, registry is empty")
+        
     def collect_node_mem_info(self):
         """
         Collect node memory.
@@ -58,7 +60,10 @@ class CollectNode(object):
         mem_per_used = Gauge('mem_used_per', 'The mem use percent of node', ['instance', 'instance_type'], registry=registry)
         mem_per_used.labels(instance=instance_id, instance_type=instance_type).set(mem_info.get('mem_used_per'))
         
-        push_info('node_mem_use', registry)
+        if any(registry.collect()):
+            push_info('node_mem_use', registry, instance_id)
+        else:
+            print("No metrics to push, registry is empty")
         
 
     def collect_node_disk_info(self):
@@ -77,7 +82,10 @@ class CollectNode(object):
         disk_used_per = Gauge('disk_used_per', 'The disk use percent of node', ['instance', 'instance_type'], registry=registry)
         disk_used_per.labels(instance=instance_id, instance_type=instance_type).set(disk_info.get('disk_used_per'))
         
-        push_info('node_disk_use', registry)
+        if any(registry.collect()):
+            push_info('node_disk_use', registry, instance_id)
+        else:
+            print("No metrics to push, registry is empty")
 
 
 if __name__ == '__main__':

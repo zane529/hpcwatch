@@ -66,8 +66,6 @@ def collect_process_info():
     end_time = time.time()
 
     print(f"[{run_id}] executed in {end_time - start_time:.4f} seconds")
-    print(f"[{run_id}] executed in {end_time - start_time:.4f} seconds")
-
 
 
 if __name__ == '__main__':

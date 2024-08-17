@@ -22,7 +22,7 @@ def auth_handler(url, method, timeout, headers, data):
     return basic_auth_handler(url, method, timeout, headers, data, USER, PASS)
 
 
-def push_info(registry):
+def push_info(job, registry, client):
     """
     Get PushGateway client.
     :return:
@@ -37,7 +37,7 @@ def push_info(registry):
                 print(f"  Sample: {sample.name}, Value: {sample.value}, Labels: {sample.labels}")
             print("---")
 
-        push_to_gateway('%s:%s' %(HOST, PORT), registry=registry, handler=auth_handler)
+        push_to_gateway('%s:%s' %(HOST, PORT), job=job, registry=registry, grouping_key={"client":client}, handler=auth_handler)
     except Exception as e:
         print('Push message error !!!')
         print(e)

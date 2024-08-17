@@ -15,7 +15,7 @@ def collect_process_info():
 
     start_time = time.time()
 
-    run_id = str(uuid.uuid4())[:8]
+    run_id = 'Processs-' + str(uuid.uuid4())[:8]
     
     instance_meta = awsUtil.get_instance_metadata()
     

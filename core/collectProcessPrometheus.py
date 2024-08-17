@@ -25,7 +25,7 @@ def collect_process_info():
     hostname_dict = node.get_host_info()
     jobs = cmdagent.get_slurm_jobs(hostname_dict.get('host_name', None))
     
-    registry = CollectorRegistry()
+    
     
     for job in jobs:
         job_id = job.get_job_id()
@@ -47,6 +47,8 @@ def collect_process_info():
         disk_info = proc['disk_info']
 
         pid = job_id + '_' + pid
+
+        registry = CollectorRegistry()
         
         # Collect process cpu info.
         proc_cpu_use = Gauge('proc_cpu_use', 'The cpu use of job', ['instance', 'instance_type', 'pid', 'project_name'], registry=registry)
@@ -61,10 +63,10 @@ def collect_process_info():
             proc_disk_use = Gauge('proc_disk_use', 'The disk use of job', ['instance', 'instance_type', 'pid', 'project_name'], registry=registry)
             proc_disk_use.labels(instance=instance_id, instance_type=instance_type, pid=pid, project_name=project_name).set(disk_info.get('disk_use'))
 
-    if any(registry.collect()):
-        push_info('job_info', registry)
-    else:
-        print("No metrics to push, registry is empty")
+        if any(registry.collect()):
+            push_info('job_info', registry)
+        else:
+            print("No metrics to push, registry is empty")
 
     end_time = time.time()
 

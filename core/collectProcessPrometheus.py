@@ -53,15 +53,18 @@ def collect_process_info():
         # Collect process cpu info.
         proc_cpu_use = Gauge('proc_cpu_use', 'The cpu use of job', ['instance_id', 'instance_type', 'pid', 'project_name'], registry=registry)
         proc_cpu_use.labels(instance_id=instance_id, instance_type=instance_type, pid=pid, project_name=project_name).set(cpu_info.get('cpu_use'))
+        proc_cpu_use.set_to_current_time()
 
         # Collect process mem info.    
         proc_mem_use = Gauge('proc_mem_use', 'The mem use of job', ['instance_id', 'instance_type', 'pid', 'project_name'], registry=registry)
         proc_mem_use.labels(instance_id=instance_id, instance_type=instance_type, pid=pid, project_name=project_name).set(mem_info.get('mem_use'))
+        proc_mem_use.set_to_current_time()
 
         # Collect process disk info.
         if disk_info:
             proc_disk_use = Gauge('proc_disk_use', 'The disk use of job', ['instance_id', 'instance_type', 'pid', 'project_name'], registry=registry)
             proc_disk_use.labels(instance_id=instance_id, instance_type=instance_type, pid=pid, project_name=project_name).set(disk_info.get('disk_use'))
+            proc_disk_use.set_to_current_time()
 
         if any(registry.collect()):
             push_info('job_info', registry)

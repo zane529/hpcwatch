@@ -1,0 +1,172 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudFormation template for EC2 with Graviton, Prometheus, and Pushgateway'
+
+Parameters:
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instance
+    Type: AWS::EC2::KeyPair::KeyName
+  VpcId:
+    Description: ID of the VPC
+    Type: AWS::EC2::VPC::Id
+  SubnetId:
+    Description: ID of the subnet
+    Type: AWS::EC2::Subnet::Id
+
+Resources:
+  PrometheusSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow SSH and Prometheus/Pushgateway ports
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 9090
+          ToPort: 9090
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 9091
+          ToPort: 9091
+          CidrIp: 0.0.0.0/0
+
+  PrometheusInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0265620b57cb06f42 # us-west-2
+      InstanceType: c6g.large  # Graviton-based instance type
+      KeyName: !Ref KeyName
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 80
+            VolumeType: gp3
+            DeleteOnTermination: true
+        - DeviceName: /dev/xvdf
+          Ebs:
+            VolumeSize: 200
+            VolumeType: gp3
+            DeleteOnTermination: false
+      NetworkInterfaces: 
+        - AssociatePublicIpAddress: "true"
+          DeviceIndex: "0"
+          GroupSet: 
+            - !Ref PrometheusSecurityGroup
+          SubnetId: !Ref SubnetId
+      Tags:
+        - Key: Name
+          Value: !Join
+            - '-'
+            - - 'prometheusServer'
+              - !Select 
+                - 0
+                - !Split 
+                  - '-'
+                  - !Select 
+                    - 2
+                    - !Split 
+                      - '/'
+                      - !Ref 'AWS::StackId'
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          yum install -y docker
+          systemctl start docker
+          systemctl enable docker
+
+          # Mount the new EBS volume
+          mkfs -t xfs /dev/xvdf
+          mkdir -p /data/prometheus
+          mount /dev/xvdf /data/prometheus
+          echo "/dev/xvdf /data/prometheus xfs defaults,nofail 0 2" >> /etc/fstab
+
+          # Set correct permissions for Prometheus data directory
+          chown -R 65534:65534 /data/prometheus
+          chmod 755 /data/prometheus
+
+          # Install Prometheus
+          mkdir -p /etc/prometheus
+          cat << EOF > /etc/prometheus/prometheus.yml
+          global:
+            scrape_interval: 15s
+          scrape_configs:
+            - job_name: 'prometheus'
+              static_configs:
+                - targets: ['localhost:9090']
+            - job_name: 'pushgateway'
+              static_configs:
+                - targets: ['localhost:9091']
+          EOF
+
+          docker run -d \
+            --name prometheus \
+            --user 65534:65534 \
+            -p 9090:9090 \
+            -v /etc/prometheus:/etc/prometheus \
+            -v /data/prometheus:/prometheus \
+            prom/prometheus
+
+          # Install Pushgateway
+          docker run -d \
+            --name pushgateway \
+            -p 9091:9091 \
+            prom/pushgateway
+
+          # Create systemd service for Prometheus
+          cat << EOF > /etc/systemd/system/prometheus.service
+          [Unit]
+          Description=Prometheus
+          After=docker.service
+          Requires=docker.service
+
+          [Service]
+          TimeoutStartSec=0
+          Restart=always
+          ExecStartPre=-/usr/bin/docker stop prometheus
+          ExecStartPre=-/usr/bin/docker rm prometheus
+          ExecStart=/usr/bin/docker run --name prometheus --user 65534:65534 -p 9090:9090 -v /etc/prometheus:/etc/prometheus -v /data/prometheus:/prometheus prom/prometheus
+
+          [Install]
+          WantedBy=multi-user.target
+          EOF
+
+          # Create systemd service for Pushgateway
+          cat << EOF > /etc/systemd/system/pushgateway.service
+          [Unit]
+          Description=Pushgateway
+          After=docker.service
+          Requires=docker.service
+
+          [Service]
+          TimeoutStartSec=0
+          Restart=always
+          ExecStartPre=-/usr/bin/docker stop pushgateway
+          ExecStartPre=-/usr/bin/docker rm pushgateway
+          ExecStart=/usr/bin/docker run --name pushgateway -p 9091:9091 prom/pushgateway
+
+          [Install]
+          WantedBy=multi-user.target
+          EOF
+
+          systemctl daemon-reload
+          systemctl enable prometheus.service
+          systemctl enable pushgateway.service
+          systemctl start prometheus.service
+          systemctl start pushgateway.service
+
+Outputs:
+  InstanceId:
+    Description: ID of the created EC2 instance
+    Value: !Ref PrometheusInstance
+  PublicDNS:
+    Description: Public DNS name of the created EC2 instance
+    Value: !GetAtt PrometheusInstance.PublicDnsName
+  PrometheusURL:
+    Description: URL for Prometheus web interface
+    Value: !Sub "http://${PrometheusInstance.PublicDnsName}:9090"
+  PushgatewayURL:
+    Description: URL for Pushgateway
+    Value: !Sub "http://${PrometheusInstance.PublicDnsName}:9091"

@@ -1,0 +1,316 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudFormation template for Grafana and Prometheus on EC2 with Graviton'
+
+Parameters:
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instances
+    Type: AWS::EC2::KeyPair::KeyName
+  VpcId:
+    Description: ID of the VPC
+    Type: AWS::EC2::VPC::Id
+  PublicSubnetId:
+    Description: ID of the public subnet for Grafana
+    Type: AWS::EC2::Subnet::Id
+  PrivateSubnetId:
+    Description: ID of the private subnet for Prometheus
+    Type: AWS::EC2::Subnet::Id
+  GrafanaAdminPassword:
+    Description: Admin password for Grafana
+    Type: String
+    NoEcho: true
+
+Resources:
+  VpcInfo:
+    Type: Custom::VpcInfo
+    Properties:
+      ServiceToken: !GetAtt VpcInfoFunction.Arn
+      VpcId: !Ref VpcId
+
+  VpcInfoFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          import cfnresponse
+          import boto3
+
+          def handler(event, context):
+            if event['RequestType'] == 'Delete':
+              cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+              return
+
+            try:
+              ec2 = boto3.client('ec2')
+              vpc = ec2.describe_vpcs(VpcIds=[event['ResourceProperties']['VpcId']])['Vpcs'][0]
+              cidr_block = vpc['CidrBlock']
+              cfnresponse.send(event, context, cfnresponse.SUCCESS, {'CidrBlock': cidr_block})
+            except Exception as e:
+              cfnresponse.send(event, context, cfnresponse.FAILED, {'Error': str(e)})
+
+      Runtime: python3.8
+      Timeout: 30
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: AllowVPCDescribe
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:DescribeVpcs
+                Resource: '*'
+        - PolicyName: AllowLambdaLogs
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: arn:aws:logs:*:*:*
+
+  GrafanaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow SSH and Grafana ports
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          CidrIp: 0.0.0.0/0
+
+  PrometheusSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow Prometheus and Pushgateway ports from VPC
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 9090
+          ToPort: 9090
+          CidrIp: !GetAtt VpcInfo.CidrBlock
+        - IpProtocol: tcp
+          FromPort: 9091
+          ToPort: 9091
+          CidrIp: !GetAtt VpcInfo.CidrBlock
+
+  GrafanaInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0265620b57cb06f42 # Amazon Linux 2023 ARM64 AMI (us-west-2)
+      InstanceType: c6g.large  # Graviton-based instance type
+      KeyName: !Ref KeyName
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 40
+            VolumeType: gp3
+            DeleteOnTermination: true
+      NetworkInterfaces: 
+        - AssociatePublicIpAddress: "true"
+          DeviceIndex: "0"
+          GroupSet: 
+            - !Ref GrafanaSecurityGroup
+          SubnetId: !Ref PublicSubnetId
+      Tags:
+        - Key: Name
+          Value: GrafanaServer
+      UserData:
+        Fn::Base64: 
+          !Sub |
+            #!/bin/bash
+            yum update -y
+            yum install -y wget jq
+
+            # Install Grafana
+            wget https://dl.grafana.com/enterprise/release/grafana-enterprise-10.1.2-1.aarch64.rpm
+            yum install -y grafana-enterprise-10.1.2-1.aarch64.rpm
+
+            # Configure Grafana
+            sed -i 's/;http_port = 3000/http_port = 3000/' /etc/grafana/grafana.ini
+            sed -i 's/;admin_password = admin/admin_password = ${GrafanaAdminPassword}/' /etc/grafana/grafana.ini
+
+            # Start Grafana
+            systemctl start grafana-server
+            systemctl enable grafana-server
+
+            # Wait for Grafana to start
+            sleep 30
+
+            # Add Prometheus data source
+            PROMETHEUS_URL="http://${PrometheusInstance.PrivateIp}:9090"
+            DATASOURCE_PAYLOAD=$(jq -n \
+                                  --arg url "$PROMETHEUS_URL" \
+                                  '{name: "Prometheus", type: "prometheus", url: $url, access: "proxy", isDefault: true}')
+
+            curl -X POST \
+              -H "Content-Type: application/json" \
+              -d "$DATASOURCE_PAYLOAD" \
+              http://admin:${GrafanaAdminPassword}@localhost:3000/api/datasources
+
+            # Import dashboard
+            DASHBOARD_JSON=$(cat /opt/aws/bin/Computer\ Nodes.json)
+            DASHBOARD_TITLE=$(echo $DASHBOARD_JSON | jq -r '.title')
+            PAYLOAD=$(jq -n \
+                      --arg json "$DASHBOARD_JSON" \
+                      --arg title "$DASHBOARD_TITLE" \
+                      '{dashboard: $json | fromjson, overwrite: true, folderId: 0, title: $title}')
+
+            curl -X POST \
+              -H "Content-Type: application/json" \
+              -d "$PAYLOAD" \
+              http://admin:${GrafanaAdminPassword}@localhost:3000/api/dashboards/db
+
+  PrometheusInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0265620b57cb06f42 # Amazon Linux 2023 ARM64 AMI (us-west-2)
+      InstanceType: c6g.large  # Graviton-based instance type
+      KeyName: !Ref KeyName
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 40
+            VolumeType: gp3
+            DeleteOnTermination: true
+        - DeviceName: /dev/xvdf
+          Ebs:
+            VolumeSize: 200
+            VolumeType: gp3
+            DeleteOnTermination: false
+      NetworkInterfaces: 
+        - AssociatePublicIpAddress: "false"
+          DeviceIndex: "0"
+          GroupSet: 
+            - !Ref PrometheusSecurityGroup
+          SubnetId: !Ref PrivateSubnetId
+      Tags:
+        - Key: Name
+          Value: PrometheusServer
+      UserData:
+        Fn::Base64: 
+          !Sub |
+            #!/bin/bash
+            yum update -y
+            yum install -y docker
+            systemctl start docker
+            systemctl enable docker
+
+            # Mount the new EBS volume
+            mkfs -t xfs /dev/xvdf
+            mkdir -p /data/prometheus
+            mount /dev/xvdf /data/prometheus
+            echo "/dev/xvdf /data/prometheus xfs defaults,nofail 0 2" >> /etc/fstab
+
+            # Set correct permissions for Prometheus data directory
+            chown -R 65534:65534 /data/prometheus
+            chmod 755 /data/prometheus
+
+            # Install Prometheus
+            mkdir -p /etc/prometheus
+            cat << EOF > /etc/prometheus/prometheus.yml
+            global:
+              scrape_interval: 15s
+            scrape_configs:
+              - job_name: 'prometheus'
+                static_configs:
+                  - targets: ['localhost:9090']
+              - job_name: 'pushgateway'
+                static_configs:
+                  - targets: ['localhost:9091']
+            EOF
+
+            # Run Prometheus with correct user
+            docker run -d \
+              --name prometheus \
+              --user 65534:65534 \
+              -p 9090:9090 \
+              -v /etc/prometheus:/etc/prometheus \
+              -v /data/prometheus:/prometheus \
+              prom/prometheus
+
+            # Install Pushgateway
+            docker run -d \
+              --name pushgateway \
+              -p 9091:9091 \
+              prom/pushgateway
+
+            # Create systemd service for Prometheus
+            cat << EOF > /etc/systemd/system/prometheus.service
+            [Unit]
+            Description=Prometheus
+            After=docker.service
+            Requires=docker.service
+
+            [Service]
+            TimeoutStartSec=0
+            Restart=always
+            ExecStartPre=-/usr/bin/docker stop prometheus
+            ExecStartPre=-/usr/bin/docker rm prometheus
+            ExecStart=/usr/bin/docker run --name prometheus --user 65534:65534 -p 9090:9090 -v /etc/prometheus:/etc/prometheus -v /data/prometheus:/prometheus prom/prometheus
+
+            [Install]
+            WantedBy=multi-user.target
+            EOF
+
+            # Create systemd service for Pushgateway
+            cat << EOF > /etc/systemd/system/pushgateway.service
+            [Unit]
+            Description=Pushgateway
+            After=docker.service
+            Requires=docker.service
+
+            [Service]
+            TimeoutStartSec=0
+            Restart=always
+            ExecStartPre=-/usr/bin/docker stop pushgateway
+            ExecStartPre=-/usr/bin/docker rm pushgateway
+            ExecStart=/usr/bin/docker run --name pushgateway -p 9091:9091 prom/pushgateway
+
+            [Install]
+            WantedBy=multi-user.target
+            EOF
+
+            systemctl daemon-reload
+            systemctl enable prometheus.service
+            systemctl start prometheus.service
+            systemctl enable pushgateway.service
+            systemctl start pushgateway.service
+
+Outputs:
+  GrafanaInstanceId:
+    Description: ID of the created Grafana EC2 instance
+    Value: !Ref GrafanaInstance
+  GrafanaPublicDNS:
+    Description: Public DNS name of the created Grafana EC2 instance
+    Value: !GetAtt GrafanaInstance.PublicDnsName
+  GrafanaURL:
+    Description: URL for Grafana web interface
+    Value: !Sub "http://${GrafanaInstance.PublicDnsName}:3000"
+  PrometheusInstanceId:
+    Description: ID of the created Prometheus EC2 instance
+    Value: !Ref PrometheusInstance
+  PrometheusPrivateIP:
+    Description: Private IP address of the created Prometheus EC2 instance
+    Value: !GetAtt PrometheusInstance.PrivateIp
+  VpcCidr:
+    Description: CIDR block of the VPC
+    Value: !GetAtt VpcInfo.CidrBlock

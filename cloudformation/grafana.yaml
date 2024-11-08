@@ -1,0 +1,103 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudFormation template for EC2 with Graviton and Grafana'
+
+Parameters:
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instance
+    Type: AWS::EC2::KeyPair::KeyName
+  VpcId:
+    Description: ID of the VPC
+    Type: AWS::EC2::VPC::Id
+  SubnetId:
+    Description: ID of the subnet
+    Type: AWS::EC2::Subnet::Id
+  GrafanaAdminPassword:
+    Description: Admin password for Grafana
+    Type: String
+    NoEcho: true
+
+Resources:
+  GrafanaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow SSH and Grafana ports
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          CidrIp: 0.0.0.0/0
+
+  GrafanaInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0265620b57cb06f42 # Amazon Linux 2023 ARM64 AMI (us-west-2)
+      InstanceType: c6g.large  # Graviton-based instance type
+      KeyName: !Ref KeyName
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 30
+            VolumeType: gp3
+            DeleteOnTermination: true
+      NetworkInterfaces: 
+        - AssociatePublicIpAddress: "true"
+          DeviceIndex: "0"
+          GroupSet: 
+            - !Ref GrafanaSecurityGroup
+          SubnetId: !Ref SubnetId
+      Tags:
+        - Key: Name
+          Value: GrafanaServer
+      UserData:
+        Fn::Base64: 
+          !Sub |
+            #!/bin/bash
+            yum update -y
+            yum install -y wget
+
+            # Install Grafana
+            wget https://dl.grafana.com/enterprise/release/grafana-enterprise-10.1.2-1.aarch64.rpm
+            yum install -y grafana-enterprise-10.1.2-1.aarch64.rpm
+
+            # Configure Grafana
+            sed -i 's/;http_port = 3000/http_port = 3000/' /etc/grafana/grafana.ini
+            sed -i 's/;admin_password = admin/admin_password = ${GrafanaAdminPassword}/' /etc/grafana/grafana.ini
+
+            # Start Grafana
+            systemctl start grafana-server
+            systemctl enable grafana-server
+
+            # Install jq for JSON processing
+            yum install -y jq
+
+            # Wait for Grafana to start
+            sleep 30
+
+            # Import dashboard
+            DASHBOARD_JSON=$(cat /opt/aws/bin/Computer\ Nodes.json)
+            DASHBOARD_TITLE=$(echo $DASHBOARD_JSON | jq -r '.title')
+            PAYLOAD=$(jq -n \
+                      --arg json "$DASHBOARD_JSON" \
+                      --arg title "$DASHBOARD_TITLE" \
+                      '{dashboard: $json | fromjson, overwrite: true, folderId: 0, title: $title}')
+
+            curl -X POST \
+              -H "Content-Type: application/json" \
+              -d "$PAYLOAD" \
+              http://admin:${GrafanaAdminPassword}@localhost:3000/api/dashboards/db
+
+Outputs:
+  InstanceId:
+    Description: ID of the created EC2 instance
+    Value: !Ref GrafanaInstance
+  PublicDNS:
+    Description: Public DNS name of the created EC2 instance
+    Value: !GetAtt GrafanaInstance.PublicDnsName
+  GrafanaURL:
+    Description: URL for Grafana web interface
+    Value: !Sub "http://${GrafanaInstance.PublicDnsName}:3000"

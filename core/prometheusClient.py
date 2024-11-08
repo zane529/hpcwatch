@@ -13,10 +13,10 @@ if cluster_name:
     USER = awsUtil.get_aws_parameter(cluster_name + '_dbuser')
     PASS = awsUtil.get_aws_parameter(cluster_name + '_dbpass')
 else:
-    HOST = awsUtil.get_aws_parameter('dbhost')
-    PORT = awsUtil.get_aws_parameter('dbport')
-    USER = awsUtil.get_aws_parameter('dbuser')
-    PASS = awsUtil.get_aws_parameter('dbpass')
+    HOST = awsUtil.get_aws_parameter('/pushgateway/host')
+    PORT = awsUtil.get_aws_parameter('/pushgateway/port')
+    USER = awsUtil.get_aws_parameter('/pushgateway/user')
+    PASS = awsUtil.get_aws_parameter('/pushgateway/pass')
 
 def auth_handler(url, method, timeout, headers, data):
     return basic_auth_handler(url, method, timeout, headers, data, USER, PASS)

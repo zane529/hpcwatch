@@ -18,6 +18,13 @@ Parameters:
     Description: Admin password for Grafana
     Type: String
     NoEcho: true
+  PushgatewayUsername:
+    Description: Username for Pushgateway
+    Type: String
+  PushgatewayPassword:
+    Description: Password for Pushgateway
+    Type: String
+    NoEcho: true
 
 Resources:
   VpcInfo:
@@ -121,7 +128,7 @@ Resources:
       BlockDeviceMappings:
         - DeviceName: /dev/xvda
           Ebs:
-            VolumeSize: 40
+            VolumeSize: 30
             VolumeType: gp3
             DeleteOnTermination: true
       NetworkInterfaces: 
@@ -188,7 +195,7 @@ Resources:
       BlockDeviceMappings:
         - DeviceName: /dev/xvda
           Ebs:
-            VolumeSize: 40
+            VolumeSize: 30
             VolumeType: gp3
             DeleteOnTermination: true
         - DeviceName: /dev/xvdf
@@ -234,6 +241,9 @@ Resources:
                 static_configs:
                   - targets: ['localhost:9090']
               - job_name: 'pushgateway'
+                basic_auth:
+                  username: ${PushgatewayUsername}
+                  password: ${PushgatewayPassword}
                 static_configs:
                   - targets: ['localhost:9091']
             EOF
@@ -247,11 +257,21 @@ Resources:
               -v /data/prometheus:/prometheus \
               prom/prometheus
 
-            # Install Pushgateway
+            # Install Pushgateway with basic auth
             docker run -d \
               --name pushgateway \
               -p 9091:9091 \
-              prom/pushgateway
+              -e PUSH_GATEWAY_AUTH_USER=${PushgatewayUsername} \
+              -e PUSH_GATEWAY_AUTH_PASS=${PushgatewayPassword} \
+              prom/pushgateway \
+              --web.config.file=/etc/pushgateway/web.yml
+
+            # Create web.yml for Pushgateway basic auth
+            mkdir -p /etc/pushgateway
+            cat << EOF > /etc/pushgateway/web.yml
+            basic_auth_users:
+              ${PushgatewayUsername}: $(echo -n "${PushgatewayPassword}" | sha256sum | cut -d' ' -f1)
+            EOF
 
             # Create systemd service for Prometheus
             cat << EOF > /etc/systemd/system/prometheus.service
@@ -283,7 +303,7 @@ Resources:
             Restart=always
             ExecStartPre=-/usr/bin/docker stop pushgateway
             ExecStartPre=-/usr/bin/docker rm pushgateway
-            ExecStart=/usr/bin/docker run --name pushgateway -p 9091:9091 prom/pushgateway
+            ExecStart=/usr/bin/docker run --name pushgateway -p 9091:9091 -e PUSH_GATEWAY_AUTH_USER=${PushgatewayUsername} -e PUSH_GATEWAY_AUTH_PASS=${PushgatewayPassword} -v /etc/pushgateway:/etc/pushgateway prom/pushgateway --web.config.file=/etc/pushgateway/web.yml
 
             [Install]
             WantedBy=multi-user.target
@@ -294,6 +314,39 @@ Resources:
             systemctl start prometheus.service
             systemctl enable pushgateway.service
             systemctl start pushgateway.service
+
+  PushgatewayHostParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /pushgateway/host
+      Type: String
+      Value: !GetAtt PrometheusInstance.PrivateIp
+      Description: Pushgateway host (Prometheus private IP)
+
+  PushgatewayPortParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /pushgateway/port
+      Type: String
+      Value: "9091"
+      Description: Pushgateway port
+
+  PushgatewayUserParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /pushgateway/user
+      Type: String
+      Value: !Ref PushgatewayUsername
+      Description: Pushgateway username
+
+  PushgatewayPasswordParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /pushgateway/pass
+      Type: String
+      Value: !Ref PushgatewayPassword
+      Description: Pushgateway password
+      Tier: Standard
 
 Outputs:
   GrafanaInstanceId:
@@ -314,3 +367,9 @@ Outputs:
   VpcCidr:
     Description: CIDR block of the VPC
     Value: !GetAtt VpcInfo.CidrBlock
+  PushgatewayHost:
+    Description: Pushgateway host (Prometheus private IP)
+    Value: !GetAtt PrometheusInstance.PrivateIp
+  PushgatewayPort:
+    Description: Pushgateway port
+    Value: "9091"
